@@ -1027,6 +1027,64 @@
             }
         },
         
+        "BastionInstance": {
+            "DependsOn": [
+                "PublicSubnet",
+                "BastionSecurityGroup"
+            ],
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "InstanceType": {
+                    "Ref": "EC2InstanceClassBastion"
+                },
+                "KeyName": {
+                    "Ref": "KeyPairName"
+                },
+                "SourceDestCheck": "false",
+                "ImageId": {
+                    "Fn::FindInMap":[
+                        "RegionMap",
+                        {
+                            "Ref":"AWS::Region"
+                        },
+                        "AMI"
+                    ]
+                },
+                "NetworkInterfaces": [
+                    {
+                        "GroupSet": [
+                            {
+                                "Ref": "BastionSecurityGroup"
+                            }
+                        ],
+                        "AssociatePublicIpAddress": "true",
+                        "DeviceIndex": "0",
+                        "DeleteOnTermination": "true",
+                        "SubnetId": {
+                            "Ref": "PublicSubnet"
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Sapiens Bastion Instance"
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash\n",
+                                "echo In work\n"
+                            ]
+                        ]
+                    }
+                }
+            }
+        },
+
         "SapiensEC2": {
             "DependsOn": [
                 "PublicSubnet",
