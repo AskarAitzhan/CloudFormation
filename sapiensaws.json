@@ -1085,10 +1085,10 @@
             }
         },
 
-        "SapiensEC2": {
+        "WebInstance": {
             "DependsOn": [
-                "PublicSubnet",
-                "WebSecurityGroupPublic"
+                "PrivateSubnet",
+                "EC2SecurityGroup"
             ],
             "Type": "AWS::EC2::Instance",
             "Properties": {
@@ -1109,14 +1109,13 @@
                     {
                         "GroupSet": [
                             {
-                                "Ref": "WebSecurityGroupPublic"
+                                "Ref": "EC2SecurityGroup"
                             }
                         ],
-                        "AssociatePublicIpAddress": "true",
                         "DeviceIndex": "0",
                         "DeleteOnTermination": "true",
                         "SubnetId": {
-                            "Ref": "PublicSubnet"
+                            "Ref": "PrivateSubnet"
                         }
                     }
                 ],
@@ -1137,6 +1136,53 @@
                         ]
                     }
                 }
+            }
+        },
+        "ElasticLoadBalancer":{
+            "Type":"AWS::ElasticLoadBalancing::LoadBalancer",
+            "DependsOn":[
+                "PublicSubnet"
+            ],
+            "Properties":{
+                "Subnets":[
+                    {
+                        "Ref":"PublicSubnet"
+                    }
+                ],
+                "CrossZone":"true",
+                "Listeners":[
+                    {
+                        "LoadBalancerPort":"80",
+                        "InstancePort":"80",
+                        "Protocol":"HTTP"
+                    },
+                    {
+                        "LoadBalancerPort":"443",
+                        "InstancePort":"80",
+                        "Protocol":"TCP"
+                    }
+                ],
+                "ConnectionDrainingPolicy":{
+                    "Enabled":"true",
+                    "Timeout":"60"
+                },
+                "SecurityGroups" : [
+                    {
+                        "Ref" : "ELBSecurityGroup"
+                    }
+                ],
+                "HealthCheck":{
+                    "Target":"HTTP:8000/index.html",
+                    "HealthyThreshold":"3",
+                    "UnhealthyThreshold":"5",
+                    "Interval":"30",
+                    "Timeout":"5"
+                },
+                "Instances": [
+                    {
+                        "Ref": "WebInstance"
+                    }
+                ]
             }
         }
     },
