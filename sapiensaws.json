@@ -183,10 +183,9 @@
         "DBInstanceClass": {
             "Description": "The database instance type",
             "Type": "String",
-            "Default": "db.t1.micro",
+            "Default": "db.t2.micro",
             "AllowedValues": [
-                "db.t1.micro",
-                "db.m1.small",
+                "db.m2.xlarge",
                 "db.m3.medium",
                 "db.m3.large",
                 "db.m3.xlarge",
@@ -540,6 +539,49 @@
                 ]
             }
         },
+
+        "DbPrivateSubnet": {
+            "DependsOn": [
+                "VPC"
+            ],
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "CidrBlock": {
+                    "Fn::FindInMap": [
+                        "SubnetConfig",
+                        "DbPrivate",
+                        "CIDR"
+                    ]
+                },
+                "AvailabilityZone": {
+                    "Fn::FindInMap": [
+                        "SubnetConfig",
+                        "DbPrivate",
+                        "AZ"
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Application",
+                        "Value": {
+                            "Ref": "AWS::StackName"
+                        }
+                    },
+                    {
+                        "Key": "Network",
+                        "Value": "Private"
+                    },
+                    {
+                        "Key": "Name",
+                        "Value": "DB Private Subnet"
+                    }
+                ]
+            }
+        },
+
         "NatElasticIP": {
             "DependsOn": [
                 "GatewayToInternet"
@@ -633,7 +675,23 @@
                 }
             }
         },
-        
+
+        "DbPrivateSubnetRouteTableAssociation": {
+            "DependsOn": [
+                "DbPrivateSubnet",
+                "PrivateRouteTable"
+            ],
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "DbPrivateSubnet"
+                },
+                "RouteTableId": {
+                    "Ref": "PrivateRouteTable"
+                }
+            }
+        },
+
         "ELBSecurityGroup": {
             "DependsOn": [
                 "VPC"
@@ -1115,6 +1173,66 @@
                     "Ref": "RootRole"
                 }]
             }
+        },
+
+        "RDSSubnetGroup":{
+            "Type":"AWS::RDS::DBSubnetGroup",
+            "Properties":{
+                "DBSubnetGroupDescription":"Availability Zones for AlgorDB",
+                "SubnetIds":[
+                    {
+                        "Ref":"PrivateSubnet"
+                    },
+                    {
+                        "Ref":"DbPrivateSubnet"
+                    }
+                ]
+            }
+        },
+
+        "AlgorDB":{
+            "Type":"AWS::RDS::DBInstance",
+            "Properties":{
+                "DBName":{
+                    "Ref":"DBName"
+                },
+                "DBInstanceIdentifier":{
+                    "Ref":"DBName"
+                },
+                "AllocatedStorage":{
+                    "Ref":"DBAllocatedStorage"
+                },
+                "DBInstanceClass":{
+                    "Ref":"DBInstanceClass"
+                },
+                "BackupRetentionPeriod":{
+                    "Ref":"DBbackupRetentionPeriod"
+                },
+                "Engine":"postgres",
+                "MasterUsername":{
+                    "Ref":"DBUser"
+                },
+                "MasterUserPassword":{
+                    "Ref":"DBPassword"
+                },
+                "MultiAZ":{
+                    "Ref":"MultiAZ"
+                },
+                "Tags":[
+                    {
+                        "Key":"Name",
+                        "Value":"Algor Master Database"
+                    }
+                ],
+                "DBSubnetGroupName":{
+                    "Ref":"RDSSubnetGroup"
+                },
+                "VPCSecurityGroups":[{
+                    "Ref": "RDSSecurityGroup"
+                }]
+
+            },
+            "DeletionPolicy": "Snapshot"
         },
         
         "BastionInstance": {
