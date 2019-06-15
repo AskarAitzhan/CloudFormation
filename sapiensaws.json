@@ -1017,13 +1017,103 @@
                 ]
             }
         },
+
+        "RootRole": {
+            "Type" : "AWS::IAM::Role",
+            "Properties" : {
+                "AssumeRolePolicyDocument": {
+                    "Version" : "2012-10-17",
+                    "Statement": [ {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [ "ec2.amazonaws.com" ]
+                        },
+                        "Action": [ "sts:AssumeRole" ]
+                    }]
+                },
+                "Path": "/"
+            }
+        },
+
+        "RootRolePolicies": {
+            "Type": "AWS::IAM::Policy",
+            "Properties": {
+                "PolicyName": "root",
+                "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": "ec2:*",
+                            "Effect": "Allow",
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": "elasticloadbalancing:*",
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": "cloudwatch:*",
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": "autoscaling:*",
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": "iam:CreateServiceLinkedRole",
+                            "Resource": "*",
+                            "Condition": {
+                                "StringEquals": {
+                                    "iam:AWSServiceName": [
+                                        "autoscaling.amazonaws.com",
+                                        "ec2scheduled.amazonaws.com",
+                                        "elasticloadbalancing.amazonaws.com",
+                                        "spot.amazonaws.com",
+                                        "spotfleet.amazonaws.com",
+                                        "transitgateway.amazonaws.com"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "kms:CreateAlias",
+                                "kms:CreateKey",
+                                "kms:Decrypt",
+                                "kms:DeleteAlias",
+                                "kms:Describe*",
+                                "kms:Encrypt",
+                                "kms:GenerateRandom",
+                                "kms:Get*",
+                                "kms:List*",
+                                "kms:TagResource",
+                                "kms:UntagResource",
+                                "iam:ListGroups",
+                                "iam:ListRoles",
+                                "iam:ListUsers"
+                            ],
+                            "Resource": "*"
+                        }
+                    ]
+                },
+                "Roles": [{
+                    "Ref": "RootRole"
+                }]
+            }
+        },
+
         "InstanceProfile": {
             "Type": "AWS::IAM::InstanceProfile",
             "Properties": {
                 "Path": "/",
-                "Roles": [
-                    "ec2Instances"
-                ]
+                "Roles": [{
+                    "Ref": "RootRole"
+                }]
             }
         },
         
