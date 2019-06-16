@@ -1,0 +1,486 @@
+{
+
+    "AWSTemplateFormatVersion": "2010-09-09",
+
+    "Description": "CloudFormation template for Security Groups",
+
+    "Parameters": {
+
+        "NetworkStackNameParameter": {
+            "Description": "Stack name to import network resource parameters from",
+            "Type": "String",
+            "MinLength": "1",
+            "AllowedPattern": "[a-zA-Z]*",
+            "ConstraintDescription": "must contain only letters."
+        },
+        
+        "ServerAccess": {
+            "Description": "CIDR IP range allowed to login to the NAT instance",
+            "Type": "String",
+            "MinLength": "9",
+            "MaxLength": "18",
+            "Default": "0.0.0.0/0",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x."
+        },
+
+    },
+
+    "Mappings": {},
+
+    "Resources": {
+
+        "ELBSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "ELB Security Group",
+                "VpcId": {
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
+                    }
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "ELB Security Group"
+                    }
+                ]
+            }
+        },
+
+        "EC2SecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "EC2 Instances Security Group",
+                "VpcId": {
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
+                    }
+                },
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "5432",
+                        "ToPort": "5432",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "EC2 Security Group"
+                    }
+                ]
+            }
+        },
+
+        "BastionSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Bastion Security Group",
+                "VpcId": {
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
+                    }
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": {
+                            "Ref": "ServerAccess"
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Bastion Security Group"
+                    }
+                ]
+            }
+        },
+
+        "RDSSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "RDS Security Group",
+                "VpcId": {
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
+                    }
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "5432",
+                        "ToPort": "5432",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt":[
+                                "EC2SecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "5432",
+                        "ToPort": "5432",
+                        "SourceSecurityGroupId":{
+                            "Fn::GetAtt":[
+                                "BastionSecurityGroup",
+                                "GroupId"
+                            ]
+                        }
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "RDS Security Group"
+                    }
+                ]
+            }
+        },
+
+        "ELBSecurityGroupIngress80": {
+            "DependsOn": [
+                "ELBSecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "ELBSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "80",
+                "ToPort": "80",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+
+        "ELBSecurityGroupIngress443": {
+            "DependsOn": [
+                "ELBSecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "ELBSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "443",
+                "ToPort": "443",
+                "CidrIp": "0.0.0.0/0"
+            }
+        },
+
+        "ELBSecurityGroupEgress80": {
+            "DependsOn": [
+                "ELBSecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupEgress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "ELBSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "80",
+                "ToPort": "80",
+                "DestinationSecurityGroupId":{
+                    "Fn::GetAtt":[
+                        "EC2SecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+
+        "ELBSecurityGroupEgress8000": {
+            "DependsOn": [
+                "ELBSecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupEgress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "ELBSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "8000",
+                "ToPort": "8000",
+                "DestinationSecurityGroupId":{
+                    "Fn::GetAtt":[
+                        "EC2SecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+
+        "EC2SecurityGroupIngress80": {
+            "DependsOn": [
+                "EC2SecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "EC2SecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "80",
+                "ToPort": "80",
+                "SourceSecurityGroupId":{
+                    "Fn::GetAtt":[
+                        "ELBSecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+
+        "EC2SecurityGroupIngress8000": {
+            "DependsOn": [
+                "EC2SecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "EC2SecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "8000",
+                "ToPort": "8000",
+                "SourceSecurityGroupId":{
+                    "Fn::GetAtt":[
+                        "ELBSecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+
+        "EC2SecurityGroupIngress22": {
+            "DependsOn": [
+                "EC2SecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "EC2SecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "22",
+                "ToPort": "22",
+                "SourceSecurityGroupId":{
+                    "Fn::GetAtt":[
+                        "BastionSecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+
+        "EC2SecurityGroupIngress9001": {
+            "DependsOn": [
+                "EC2SecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupIngress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "EC2SecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "9001",
+                "ToPort": "9001",
+                "SourceSecurityGroupId":{
+                    "Fn::GetAtt":[
+                        "BastionSecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+
+        "BastionSecurityGroupEgress5432": {
+            "DependsOn": [
+                "BastionSecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupEgress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "BastionSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "5432",
+                "ToPort": "5432",
+                "DestinationSecurityGroupId":{
+                    "Fn::GetAtt":[
+                        "RDSSecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+
+        "BastionSecurityGroupEgress22": {
+            "DependsOn": [
+                "BastionSecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupEgress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "BastionSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "22",
+                "ToPort": "22",
+                "DestinationSecurityGroupId":{
+                    "Fn::GetAtt":[
+                        "EC2SecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+
+        "BastionSecurityGroupEgress9001": {
+            "DependsOn": [
+                "BastionSecurityGroup"
+            ],
+            "Type":"AWS::EC2::SecurityGroupEgress",
+            "Properties": {
+                "GroupId": {
+                    "Ref": "BastionSecurityGroup"
+                },
+                "IpProtocol": "tcp",
+                "FromPort": "9001",
+                "ToPort": "9001",
+                "DestinationSecurityGroupId":{
+                    "Fn::GetAtt":[
+                        "EC2SecurityGroup",
+                        "GroupId"
+                    ]
+                }
+            }
+        },
+
+        "WebSecurityGroupPublic": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Public facing  Security Group",
+                "VpcId": {
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
+                    }
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "SecurityGroupEgress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "443",
+                        "ToPort": "443",
+                        "CidrIp": "0.0.0.0/0"
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "5432",
+                        "ToPort": "5432",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "Public WebSecurityGroup"
+                    }
+                ]
+            }
+        },
+
+    },
+
+    "Outputs": {
+
+        "BastionSecurityGroup": {
+            "Description": "BastionSecurityGroup",
+            "Value": {
+                "Ref": "BastionSecurityGroup"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [ "::", [ { "Ref" : "AWS::StackName" }, "BastionSecurityGroup" ] ]
+                }
+            }
+        },
+        
+        "EC2SecurityGroup": {
+            "Description": "EC2SecurityGroup",
+            "Value": {
+                "Ref": "EC2SecurityGroup"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [ "::", [ { "Ref" : "AWS::StackName" }, "EC2SecurityGroup" ] ]
+                }
+            }
+        },
+
+        "ELBSecurityGroup": {
+            "Description": "ELBSecurityGroup",
+            "Value": {
+                "Ref": "ELBSecurityGroup"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [ "::", [ { "Ref" : "AWS::StackName" }, "ELBSecurityGroup" ] ]
+                }
+            }
+        },
+        
+        "RDSSecurityGroup": {
+            "Description": "RDSSecurityGroup",
+            "Value": {
+                "Ref": "RDSSecurityGroup"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [ "::", [ { "Ref" : "AWS::StackName" }, "RDSSecurityGroup" ] ]
+                }
+            }
+        },
+
+        "WebSecurityGroupPublic": {
+            "Description": "WebSecurityGroupPublic",
+            "Value": {
+                "Ref": "WebSecurityGroupPublic"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [ "::", [ { "Ref" : "AWS::StackName" }, "WebSecurityGroupPublic" ] ]
+                }
+            }
+        }
+
+    }
+
+}
