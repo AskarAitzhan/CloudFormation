@@ -1,7 +1,11 @@
 {
+
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "CloudFormation template for web resources",
+
+    "Description": "CloudFormation template for Web resources",
+
     "Parameters": {
+
         "NetworkStackNameParameter": {
             "Description": "Stack name to import network resource parameters from",
             "Type": "String",
@@ -9,16 +13,19 @@
             "AllowedPattern": "[a-zA-Z]*",
             "ConstraintDescription": "must contain only letters."
         },
+
         "BastionServerName": {
             "Description": "Bastion Server Name",
             "Type": "String",
             "Default": "bastion"
         },
+
         "EmailAddress": {
             "Description": "Email to where notifications will be sent",
             "Type": "String",
             "Default": "askar.aitzhan@gmail.com"
         },
+
         "SNSDisplayNameInfra": {
             "Default": "InfraAlert",
             "Description": "The SNS display name",
@@ -28,6 +35,7 @@
             "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
             "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
         },
+
         "SNSTopicNameInfra": {
             "Default": "SapiensInfra",
             "Description": "The SNS topic name",
@@ -37,6 +45,7 @@
             "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
             "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
         },
+
         "DBName": {
             "Default": "algordb",
             "Description": "The database name",
@@ -46,6 +55,7 @@
             "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
             "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
         },
+
         "DBbackupRetentionPeriod": {
             "Default": "7",
             "Description": "Database Backup Retention Period",
@@ -54,6 +64,7 @@
             "MaxValue": "30",
             "ConstraintDescription": "must be between 0 and 30"
         },
+
         "DBUser": {
             "Default": "algordbroot",
             "NoEcho": "true",
@@ -64,6 +75,7 @@
             "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
             "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
         },
+
         "DBPassword": {
             "Default": "2rmEAZarLM4rmEH",
             "NoEcho": "true",
@@ -74,6 +86,7 @@
             "AllowedPattern": "[a-zA-Z0-9]+",
             "ConstraintDescription": "must contain only alphanumeric characters."
         },
+
         "DBAllocatedStorage": {
             "Default": "5",
             "Description": "The size of the database (Gb)",
@@ -82,6 +95,7 @@
             "MaxValue": "1024",
             "ConstraintDescription": "must be between 5 and 1024Gb."
         },
+
         "EC2InstanceASG": {
             "Description": "The EC2 instance type for ASG",
             "Type": "String",
@@ -120,6 +134,7 @@
             ],
             "ConstraintDescription": "must select a valid EC2 instance type."
         },
+
         "EC2InstanceClassNAT": {
             "Description": "The EC2 instance type",
             "Type": "String",
@@ -158,6 +173,7 @@
             ],
             "ConstraintDescription": "must select a valid EC2 instance type."
         },
+
         "EC2InstanceClassBastion": {
             "Description": "The Bastion EC2 instance type",
             "Type": "String",
@@ -167,6 +183,7 @@
             ],
             "ConstraintDescription": "must select a valid EC2 Bastion instance type."
         },
+
         "DBInstanceClass": {
             "Description": "The database instance type",
             "Type": "String",
@@ -188,6 +205,7 @@
             ],
             "ConstraintDescription": "must select a valid database instance type."
         },
+
         "MultiAZ": {
             "Description": "Multi-AZ master database",
             "Type": "String",
@@ -198,6 +216,7 @@
             ],
             "ConstraintDescription": "must be true or false."
         },
+
         "KeyPairName": {
             "Description": "Name of an existing EC2 KeyPair , by default using one created in chapter 3 , under Creating EC2 instance key pairs",
             "NoEcho": "true",
@@ -208,6 +227,7 @@
             "AllowedPattern": "[-_ a-zA-Z0-9]*",
             "ConstraintDescription": "can contain only alphanumeric characters, spaces, dashes and underscores."
         },
+
         "ServerAccess": {
             "Description": "CIDR IP range allowed to login to the NAT instance",
             "Type": "String",
@@ -217,6 +237,7 @@
             "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
             "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x."
         },
+
         "AMIImageId": {
             "Description": "Use your own ImageId for LaunchConfig, by default using a default image id from us-east-1 region ",
             "Type": "String",
@@ -226,8 +247,11 @@
             "AllowedPattern": "[-_ a-zA-Z0-9]*",
             "ConstraintDescription": "Must be a valid imageID, use the one created under AMI Creation in chapter 4."
         }
+
     },
+
     "Mappings": {
+
         "SubnetConfig": {
             "VPC": {
                 "CIDR": "10.31.0.0/16",
@@ -254,6 +278,7 @@
                 "AZ": "eu-central-1c"
             }
         },
+
         "RegionMapNat": {
             "us-east-1": {
                 "AMI": "ami-303b1458"
@@ -283,6 +308,7 @@
                 "AMI": "ami-03cf3903"
             }
         },
+
         "RegionMap": {
             "us-east-1": {
                 "AMI": "ami-d05e75b8"
@@ -312,7 +338,9 @@
                 "AMI": "ami-936d9d93"
             }
         }
+
     },
+
     "Resources": {
 
         "ELBSecurityGroup": {
@@ -332,7 +360,7 @@
                 ]
             }
         },
-        
+
         "EC2SecurityGroup": {
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
@@ -450,6 +478,7 @@
                 "CidrIp": "0.0.0.0/0"
             }
         },
+
         "ELBSecurityGroupIngress443": {
             "DependsOn": [
                 "ELBSecurityGroup"
@@ -486,6 +515,7 @@
                 }
             }
         },
+
         "ELBSecurityGroupEgress8000": {
             "DependsOn": [
                 "ELBSecurityGroup"
@@ -506,7 +536,7 @@
                 }
             }
         },
-        
+
         "EC2SecurityGroupIngress80": {
             "DependsOn": [
                 "EC2SecurityGroup"
@@ -527,6 +557,7 @@
                 }
             }
         },
+
         "EC2SecurityGroupIngress8000": {
             "DependsOn": [
                 "EC2SecurityGroup"
@@ -547,6 +578,7 @@
                 }
             }
         },
+
         "EC2SecurityGroupIngress22": {
             "DependsOn": [
                 "EC2SecurityGroup"
@@ -567,6 +599,7 @@
                 }
             }
         },
+
         "EC2SecurityGroupIngress9001": {
             "DependsOn": [
                 "EC2SecurityGroup"
@@ -587,6 +620,7 @@
                 }
             }
         },
+
         "BastionSecurityGroupEgress5432": {
             "DependsOn": [
                 "BastionSecurityGroup"
@@ -607,6 +641,7 @@
                 }
             }
         },
+
         "BastionSecurityGroupEgress22": {
             "DependsOn": [
                 "BastionSecurityGroup"
@@ -627,6 +662,7 @@
                 }
             }
         },
+
         "BastionSecurityGroupEgress9001": {
             "DependsOn": [
                 "BastionSecurityGroup"
@@ -856,7 +892,7 @@
             },
             "DeletionPolicy": "Snapshot"
         },
-        
+
         "BastionInstance": {
             "Type": "AWS::EC2::Instance",
             "Properties": {
@@ -967,7 +1003,8 @@
                 }
             }
         },
-        "ElasticLoadBalancer":{
+
+        "ElasticLoadBalancer": {
             "Type":"AWS::ElasticLoadBalancing::LoadBalancer",
             "Properties":{
                 "Subnets":[{
@@ -1011,7 +1048,9 @@
                 ]
             }
         }
+
     },
-    "Outputs": {
-    }
+
+    "Outputs": {}
+
 }
