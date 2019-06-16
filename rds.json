@@ -1,0 +1,181 @@
+{
+
+    "AWSTemplateFormatVersion": "2010-09-09",
+
+    "Description": "CloudFormation template for Web resources",
+
+    "Parameters": {
+
+        "NetworkStackNameParameter": {
+            "Description": "Stack name to import network resource parameters from",
+            "Type": "String",
+            "MinLength": "1",
+            "AllowedPattern": "[a-zA-Z]*",
+            "ConstraintDescription": "must contain only letters."
+        },
+
+        "SecurityGroupStackNameParameter": {
+            "Description": "Stack name to import security group resource parameters from",
+            "Type": "String",
+            "MinLength": "1",
+            "AllowedPattern": "[a-zA-Z]*",
+            "ConstraintDescription": "must contain only letters."
+        },
+
+        "DBName": {
+            "Default": "algordb",
+            "Description": "The database name",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+        },
+
+        "DBbackupRetentionPeriod": {
+            "Default": "7",
+            "Description": "Database Backup Retention Period",
+            "Type": "Number",
+            "MinValue": "0",
+            "MaxValue": "30",
+            "ConstraintDescription": "must be between 0 and 30"
+        },
+
+        "DBUser": {
+            "Default": "algordbroot",
+            "NoEcho": "true",
+            "Description": "The database admin account username",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "16",
+            "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+        },
+
+        "DBPassword": {
+            "Default": "2rmEAZarLM4rmEH",
+            "NoEcho": "true",
+            "Description": "The database admin account password",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "41",
+            "AllowedPattern": "[a-zA-Z0-9]+",
+            "ConstraintDescription": "must contain only alphanumeric characters."
+        },
+
+        "DBAllocatedStorage": {
+            "Default": "5",
+            "Description": "The size of the database (Gb)",
+            "Type": "Number",
+            "MinValue": "5",
+            "MaxValue": "1024",
+            "ConstraintDescription": "must be between 5 and 1024Gb."
+        },
+
+        "DBInstanceClass": {
+            "Description": "The database instance type",
+            "Type": "String",
+            "Default": "db.t2.micro",
+            "AllowedValues": [
+                "db.m2.xlarge",
+                "db.m3.medium",
+                "db.m3.large",
+                "db.m3.xlarge",
+                "db.m3.2xlarge",
+                "db.r3.large",
+                "db.r3.xlarge",
+                "db.r3.2xlarge",
+                "db.r3.4xlarge",
+                "db.r3.8xlarge",
+                "db.t2.micro",
+                "db.t2.small",
+                "db.t2.medium"
+            ],
+            "ConstraintDescription": "must select a valid database instance type."
+        },
+
+        "MultiAZ": {
+            "Description": "Multi-AZ master database",
+            "Type": "String",
+            "Default": "false",
+            "AllowedValues": [
+                "true",
+                "false"
+            ],
+            "ConstraintDescription": "must be true or false."
+        },
+
+    },
+
+    "Mappings": {},
+
+    "Resources": {
+
+        "RDSSubnetGroup":{
+            "Type":"AWS::RDS::DBSubnetGroup",
+            "Properties":{
+                "DBSubnetGroupDescription":"Availability Zones for AlgorDB",
+                "SubnetIds":[
+                    {
+                        "Fn::ImportValue" : {
+                            "Fn::Sub" : "${NetworkStackNameParameter}::PrivateSubnet"
+                        }
+                    },
+                    {
+                        "Fn::ImportValue" : {
+                            "Fn::Sub" : "${NetworkStackNameParameter}::DbPrivateSubnet"
+                        }
+                    }
+                ]
+            }
+        },
+
+        "AlgorDB": {
+            "Type":"AWS::RDS::DBInstance",
+            "Properties": {
+                "DBName": {
+                    "Ref":"DBName"
+                },
+                "DBInstanceIdentifier": {
+                    "Ref":"DBName"
+                },
+                "AllocatedStorage": {
+                    "Ref":"DBAllocatedStorage"
+                },
+                "DBInstanceClass": {
+                    "Ref":"DBInstanceClass"
+                },
+                "BackupRetentionPeriod": {
+                    "Ref":"DBbackupRetentionPeriod"
+                },
+                "Engine": "postgres",
+                "MasterUsername": {
+                    "Ref":"DBUser"
+                },
+                "MasterUserPassword": {
+                    "Ref":"DBPassword"
+                },
+                "MultiAZ": {
+                    "Ref":"MultiAZ"
+                },
+                "Tags": [{
+                    "Key":"Name",
+                    "Value":"Algor Master Database"
+                }],
+                "DBSubnetGroupName": {
+                    "Ref":"RDSSubnetGroup"
+                },
+                "VPCSecurityGroups": [{
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${SecurityGroupStackNameParameter}::RDSSecurityGroup"
+                    }
+                }]
+            },
+            "DeletionPolicy": "Snapshot"
+        }
+
+    },
+
+    "Outputs": {}
+
+}
