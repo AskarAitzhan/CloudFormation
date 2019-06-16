@@ -242,6 +242,42 @@
                     "Fn::Join": [ "::", [ { "Ref" : "AWS::StackName" }, "AlgorDB" ] ]
                 }
             }
+        },
+
+        "DatabaseURL": {
+            "Description": "URL to connect to database",
+            "Value": {
+                "Fn::Join": [
+                    "",
+                    [
+                        "postgres://",
+                        { "Ref": "DBUser" },
+                        ":",
+                        { "Ref": "DBPassword" },
+                        "@",
+                        {
+                            "Fn::GetAtt": [
+                                "AlgorDB",
+                                "Endpoint.Address"
+                            ]
+                        },
+                        ":",
+                        {
+                            "Fn::GetAtt": [
+                                "AlgorDB",
+                                "Endpoint.Port"
+                            ]
+                        },
+                        "/",
+                        { "Ref": "DBName" }
+                    ]
+                ]
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [ "::", [ { "Ref" : "AWS::StackName" }, "DatabaseURL" ] ]
+                }
+            }
         }
 
     }
