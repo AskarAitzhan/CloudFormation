@@ -22,6 +22,11 @@
             "ConstraintDescription": "must contain only letters."
         },
 
+        "DBSnapshot": {
+            "Description": "The database snapshot used to restore from",
+            "Type": "String"
+        },
+
         "DBName": {
             "Default": "algordb",
             "Description": "The database name",
@@ -64,12 +69,12 @@
         },
 
         "DBAllocatedStorage": {
-            "Default": "5",
+            "Default": "20",
             "Description": "The size of the database (Gb)",
             "Type": "Number",
-            "MinValue": "5",
+            "MinValue": "20",
             "MaxValue": "1024",
-            "ConstraintDescription": "must be between 5 and 1024Gb."
+            "ConstraintDescription": "must be between 20 and 1024Gb."
         },
 
         "DBInstanceClass": {
@@ -103,8 +108,19 @@
                 "false"
             ],
             "ConstraintDescription": "must be true or false."
-        },
+        }
 
+    },
+
+    "Conditions": {
+        "ShouldRestoreFromSnapshot": {
+            "Fn::Not": [{
+                "Fn::Equals": [
+                    { "Ref": "DBSnapshot" },
+                    ""
+                ]
+            }]
+        }
     },
 
     "Mappings": {},
@@ -133,43 +149,81 @@
         "AlgorDB": {
             "Type":"AWS::RDS::DBInstance",
             "Properties": {
-                "DBName": {
-                    "Ref":"DBName"
-                },
-                "DBInstanceIdentifier": {
-                    "Ref":"DBName"
-                },
-                "AllocatedStorage": {
-                    "Ref":"DBAllocatedStorage"
-                },
-                "DBInstanceClass": {
-                    "Ref":"DBInstanceClass"
-                },
-                "BackupRetentionPeriod": {
-                    "Ref":"DBbackupRetentionPeriod"
-                },
-                "Engine": "postgres",
-                "MasterUsername": {
-                    "Ref":"DBUser"
-                },
-                "MasterUserPassword": {
-                    "Ref":"DBPassword"
-                },
-                "MultiAZ": {
-                    "Ref":"MultiAZ"
-                },
-                "Tags": [{
-                    "Key":"Name",
-                    "Value":"Algor Master Database"
-                }],
-                "DBSubnetGroupName": {
-                    "Ref":"RDSSubnetGroup"
-                },
-                "VPCSecurityGroups": [{
-                    "Fn::ImportValue" : {
-                        "Fn::Sub" : "${SecurityGroupStackNameParameter}::RDSSecurityGroup"
+                "Fn::If": [
+                    "ShouldRestoreFromSnapshot",
+                    {
+                        "DBSnapshotIdentifier": {
+                            "Ref": "DBSnapshot"
+                        },
+                        "DBInstanceIdentifier": {
+                            "Ref":"DBName"
+                        },
+                        "AllocatedStorage": {
+                            "Ref":"DBAllocatedStorage"
+                        },
+                        "DBInstanceClass": {
+                            "Ref":"DBInstanceClass"
+                        },
+                        "BackupRetentionPeriod": {
+                            "Ref":"DBbackupRetentionPeriod"
+                        },
+                        "Engine": "postgres",
+                        "MultiAZ": {
+                            "Ref":"MultiAZ"
+                        },
+                        "Tags": [{
+                            "Key":"Name",
+                            "Value":"Algor Master Database"
+                        }],
+                        "DBSubnetGroupName": {
+                            "Ref":"RDSSubnetGroup"
+                        },
+                        "VPCSecurityGroups": [{
+                            "Fn::ImportValue" : {
+                                "Fn::Sub" : "${SecurityGroupStackNameParameter}::RDSSecurityGroup"
+                            }
+                        }]
+                    },
+                    {
+                        "DBName": {
+                            "Ref": "DBName"
+                        },
+                        "MasterUsername": {
+                            "Ref":"DBUser"
+                        },
+                        "MasterUserPassword": {
+                            "Ref":"DBPassword"
+                        },
+                        "DBInstanceIdentifier": {
+                            "Ref":"DBName"
+                        },
+                        "AllocatedStorage": {
+                            "Ref":"DBAllocatedStorage"
+                        },
+                        "DBInstanceClass": {
+                            "Ref":"DBInstanceClass"
+                        },
+                        "BackupRetentionPeriod": {
+                            "Ref":"DBbackupRetentionPeriod"
+                        },
+                        "Engine": "postgres",
+                        "MultiAZ": {
+                            "Ref":"MultiAZ"
+                        },
+                        "Tags": [{
+                            "Key":"Name",
+                            "Value":"Algor Master Database"
+                        }],
+                        "DBSubnetGroupName": {
+                            "Ref":"RDSSubnetGroup"
+                        },
+                        "VPCSecurityGroups": [{
+                            "Fn::ImportValue" : {
+                                "Fn::Sub" : "${SecurityGroupStackNameParameter}::RDSSecurityGroup"
+                            }
+                        }]
                     }
-                }]
+                ]
             },
             "DeletionPolicy": "Snapshot"
         }
