@@ -15,8 +15,8 @@
             "Default": "default"
         },
 
-        "Enviornment": {
-            "Description": "The Enviornment to be created. Can be one of prod/dev/qa/staging",
+        "Environment": {
+            "Description": "The Environment to be created. Can be one of prod/dev/qa/staging",
             "Type": "String",
             "AllowedValues": [
                 "Prod",
@@ -96,7 +96,7 @@
                                 [
                                     "Root-SapiensVPC",
                                     {
-                                        "Ref": "Enviornment"
+                                        "Ref": "Environment"
                                     }
                                 ]
                             ]
