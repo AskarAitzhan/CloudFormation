@@ -176,6 +176,20 @@
 
     },
 
-    "Outputs": {}
+    "Outputs": {
+
+        "AlgorDB": {
+            "Description": "AlgorDB",
+            "Value": {
+                "Ref": "AlgorDB"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Join": [ "::", [ { "Ref" : "AWS::StackName" }, "AlgorDB" ] ]
+                }
+            }
+        }
+
+    }
 
 }
