@@ -369,53 +369,7 @@
                     ]
                 }
             }
-        },
-
-        "WebSecurityGroupPublic": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-                "GroupDescription": "Public facing  Security Group",
-                "VpcId": {
-                    "Fn::ImportValue" : {
-                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
-                    }
-                },
-                "SecurityGroupIngress": [
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "80",
-                        "ToPort": "80",
-                        "CidrIp": "0.0.0.0/0"
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "22",
-                        "ToPort": "22",
-                        "CidrIp": "0.0.0.0/0"
-                    }
-                ],
-                "SecurityGroupEgress": [
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "443",
-                        "ToPort": "443",
-                        "CidrIp": "0.0.0.0/0"
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "5432",
-                        "ToPort": "5432",
-                        "CidrIp": "0.0.0.0/0"
-                    }
-                ],
-                "Tags": [
-                    {
-                        "Key": "Name",
-                        "Value": "Public WebSecurityGroup"
-                    }
-                ]
-            }
-        },
+        }
 
     },
 
@@ -465,18 +419,6 @@
             "Export": {
                 "Name": {
                     "Fn::Join": [ "::", [ { "Ref" : "AWS::StackName" }, "RDSSecurityGroup" ] ]
-                }
-            }
-        },
-
-        "WebSecurityGroupPublic": {
-            "Description": "WebSecurityGroupPublic",
-            "Value": {
-                "Ref": "WebSecurityGroupPublic"
-            },
-            "Export": {
-                "Name": {
-                    "Fn::Join": [ "::", [ { "Ref" : "AWS::StackName" }, "WebSecurityGroupPublic" ] ]
                 }
             }
         }
