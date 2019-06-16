@@ -1,26 +1,13 @@
 {
     "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "CloudFormation template for a generic VPC with public private subnets (with private network Internet access via NAT)",
+    "Description": "CloudFormation template for web resources",
     "Parameters": {
-        "EC2Tenancy": {
-            "Description": "EC2 tenancy under the VPC. Can be one of default/dedicated",
+        "NetworkStackNameParameter": {
+            "Description": "Stack name to import network resource parameters from",
             "Type": "String",
-            "AllowedValues": [
-                "dedicated",
-                "default"
-            ],
-            "Default": "default"
-        },
-        "Enviornment": {
-            "Description": "The Enviornment to be created. Can be one of prod/dev/qa/staging",
-            "Type": "String",
-            "AllowedValues": [
-                "Prod",
-                "Dev",
-                "QA",
-                "Staging"
-            ],
-            "Default": "Prod"
+            "MinLength": "1",
+            "AllowedPattern": "[a-zA-Z]*",
+            "ConstraintDescription": "must contain only letters."
         },
         "BastionServerName": {
             "Description": "Bastion Server Name",
@@ -327,380 +314,15 @@
         }
     },
     "Resources": {
-        "VPC": {
-            "Type": "AWS::EC2::VPC",
-            "Properties": {
-                "CidrBlock": {
-                    "Fn::FindInMap": [
-                        "SubnetConfig",
-                        "VPC",
-                        "CIDR"
-                    ]
-                },
-                "EnableDnsSupport": "true",
-                "EnableDnsHostnames": "true",
-                "InstanceTenancy": {
-                    "Ref": "EC2Tenancy"
-                },
-                "Tags": [
-                    {
-                        "Key": "Application",
-                        "Value": {
-                            "Ref": "AWS::StackName"
-                        }
-                    },
-                    {
-                        "Key": "Network",
-                        "Value": "Public"
-                    },
-                    {
-                        "Key": "Name",
-                        "Value": {
-                            "Fn::Join": [
-                                "",
-                                [
-                                    "Root-SapiensVPC",
-                                    {
-                                        "Ref": "Enviornment"
-                                    }
-                                ]
-                            ]
-                        }
-                    }
-                ]
-            }
-        },
-        "PublicSubnet": {
-            "DependsOn": [
-                "VPC"
-            ],
-            "Type": "AWS::EC2::Subnet",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "CidrBlock": {
-                    "Fn::FindInMap": [
-                        "SubnetConfig",
-                        "Public",
-                        "CIDR"
-                    ]
-                },
-                "AvailabilityZone": {
-                    "Fn::FindInMap": [
-                        "SubnetConfig",
-                        "Public",
-                        "AZ"
-                    ]
-                },
-                "Tags": [
-                    {
-                        "Key": "Application",
-                        "Value": {
-                            "Ref": "AWS::StackName"
-                        }
-                    },
-                    {
-                        "Key": "Network",
-                        "Value": "Public"
-                    },
-                    {
-                        "Key": "Name",
-                        "Value": "Public Subnet"
-                    }
-                ]
-            }
-        },
-        "InternetGateway": {
-            "Type": "AWS::EC2::InternetGateway",
-            "Properties": {
-                "Tags": [
-                    {
-                        "Key": "Application",
-                        "Value": {
-                            "Ref": "AWS::StackName"
-                        }
-                    },
-                    {
-                        "Key": "Network",
-                        "Value": "Public"
-                    }
-                ]
-            }
-        },
-        "GatewayToInternet": {
-            "DependsOn": [
-                "VPC",
-                "InternetGateway"
-            ],
-            "Type": "AWS::EC2::VPCGatewayAttachment",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "InternetGatewayId": {
-                    "Ref": "InternetGateway"
-                }
-            }
-        },
-        "PublicRouteTable": {
-            "DependsOn": [
-                "VPC"
-            ],
-            "Type": "AWS::EC2::RouteTable",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "Tags": [
-                    {
-                        "Key": "Application",
-                        "Value": {
-                            "Ref": "AWS::StackName"
-                        }
-                    },
-                    {
-                        "Key": "Network",
-                        "Value": "Public"
-                    }
-                ]
-            }
-        },
-        "PublicRoute": {
-            "DependsOn": [
-                "PublicRouteTable",
-                "InternetGateway"
-            ],
-            "Type": "AWS::EC2::Route",
-            "Properties": {
-                "RouteTableId": {
-                    "Ref": "PublicRouteTable"
-                },
-                "DestinationCidrBlock": "0.0.0.0/0",
-                "GatewayId": {
-                    "Ref": "InternetGateway"
-                }
-            }
-        },
-        "PublicSubnetRouteTableAssociation": {
-            "DependsOn": [
-                "PublicSubnet",
-                "PublicRouteTable"
-            ],
-            "Type": "AWS::EC2::SubnetRouteTableAssociation",
-            "Properties": {
-                "SubnetId": {
-                    "Ref": "PublicSubnet"
-                },
-                "RouteTableId": {
-                    "Ref": "PublicRouteTable"
-                }
-            }
-        },
-        
-        "PrivateSubnet": {
-            "DependsOn": [
-                "VPC"
-            ],
-            "Type": "AWS::EC2::Subnet",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "CidrBlock": {
-                    "Fn::FindInMap": [
-                        "SubnetConfig",
-                        "Private",
-                        "CIDR"
-                    ]
-                },
-                "AvailabilityZone": {
-                    "Fn::FindInMap": [
-                        "SubnetConfig",
-                        "Private",
-                        "AZ"
-                    ]
-                },
-                "Tags": [
-                    {
-                        "Key": "Application",
-                        "Value": {
-                            "Ref": "AWS::StackName"
-                        }
-                    },
-                    {
-                        "Key": "Network",
-                        "Value": "Private"
-                    },
-                    {
-                        "Key": "Name",
-                        "Value": "Private Subnet"
-                    }
-                ]
-            }
-        },
-
-        "DbPrivateSubnet": {
-            "DependsOn": [
-                "VPC"
-            ],
-            "Type": "AWS::EC2::Subnet",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "CidrBlock": {
-                    "Fn::FindInMap": [
-                        "SubnetConfig",
-                        "DbPrivate",
-                        "CIDR"
-                    ]
-                },
-                "AvailabilityZone": {
-                    "Fn::FindInMap": [
-                        "SubnetConfig",
-                        "DbPrivate",
-                        "AZ"
-                    ]
-                },
-                "Tags": [
-                    {
-                        "Key": "Application",
-                        "Value": {
-                            "Ref": "AWS::StackName"
-                        }
-                    },
-                    {
-                        "Key": "Network",
-                        "Value": "Private"
-                    },
-                    {
-                        "Key": "Name",
-                        "Value": "DB Private Subnet"
-                    }
-                ]
-            }
-        },
-
-        "NatElasticIP": {
-            "DependsOn": [
-                "GatewayToInternet"
-            ],
-            "Type": "AWS::EC2::EIP",
-            "Properties": {
-                "Domain": "vpc"
-            }
-        },
-        "NatGateway": {
-            "DependsOn": [
-                "NatElasticIP",
-                "PublicSubnet"
-            ],
-            "Type": "AWS::EC2::NatGateway",
-            "Properties": {
-                "AllocationId": {
-                    "Fn::GetAtt": [
-                        "NatElasticIP",
-                        "AllocationId"
-                    ]
-                },
-                "SubnetId": {
-                    "Ref": "PublicSubnet"
-                },
-                "Tags": [
-                    {
-                        "Key": "Application",
-                        "Value": {
-                            "Ref": "AWS::StackName"
-                        }
-                    },
-                    {
-                        "Key": "Network",
-                        "Value": "Private"
-                    }
-                ]
-            }
-        },
-        "PrivateRouteTable": {
-            "DependsOn": [
-                "VPC"
-            ],
-            "Type": "AWS::EC2::RouteTable",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "Tags": [
-                    {
-                        "Key": "Application",
-                        "Value": {
-                            "Ref": "AWS::StackName"
-                        }
-                    },
-                    {
-                        "Key": "Network",
-                        "Value": "Private"
-                    }
-                ]
-            }
-        },
-        "PrivateRoute": {
-            "DependsOn": [
-                "PrivateRouteTable",
-                "NatGateway"
-            ],
-            "Type": "AWS::EC2::Route",
-            "Properties": {
-                "RouteTableId": {
-                    "Ref": "PrivateRouteTable"
-                },
-                "DestinationCidrBlock": "0.0.0.0/0",
-                "NatGatewayId": {
-                    "Ref": "NatGateway"
-                }
-            }
-        },
-        "PrivateSubnetRouteTableAssociation": {
-            "DependsOn": [
-                "PrivateSubnet",
-                "PrivateRouteTable"
-            ],
-            "Type": "AWS::EC2::SubnetRouteTableAssociation",
-            "Properties": {
-                "SubnetId": {
-                    "Ref": "PrivateSubnet"
-                },
-                "RouteTableId": {
-                    "Ref": "PrivateRouteTable"
-                }
-            }
-        },
-
-        "DbPrivateSubnetRouteTableAssociation": {
-            "DependsOn": [
-                "DbPrivateSubnet",
-                "PrivateRouteTable"
-            ],
-            "Type": "AWS::EC2::SubnetRouteTableAssociation",
-            "Properties": {
-                "SubnetId": {
-                    "Ref": "DbPrivateSubnet"
-                },
-                "RouteTableId": {
-                    "Ref": "PrivateRouteTable"
-                }
-            }
-        },
 
         "ELBSecurityGroup": {
-            "DependsOn": [
-                "VPC"
-            ],
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "ELB Security Group",
                 "VpcId": {
-                    "Ref": "VPC"
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
+                    }
                 },
                 "Tags": [
                     {
@@ -712,14 +334,13 @@
         },
         
         "EC2SecurityGroup": {
-            "DependsOn": [
-                "VPC"
-            ],
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "EC2 Instances Security Group",
                 "VpcId": {
-                    "Ref": "VPC"
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
+                    }
                 },
                 "SecurityGroupEgress": [
                     {
@@ -745,14 +366,13 @@
         },
         
         "BastionSecurityGroup": {
-            "DependsOn": [
-                "VPC"
-            ],
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "Bastion Security Group",
                 "VpcId": {
-                    "Ref": "VPC"
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
+                    }
                 },
                 "SecurityGroupIngress": [
                     {
@@ -774,14 +394,13 @@
         },
         
         "RDSSecurityGroup": {
-            "DependsOn": [
-                "VPC"
-            ],
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "RDS Security Group",
                 "VpcId": {
-                    "Ref": "VPC"
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
+                    }
                 },
                 "SecurityGroupIngress": [
                     {
@@ -1030,14 +649,13 @@
         },
 
         "WebSecurityGroupPublic": {
-            "DependsOn": [
-                "VPC"
-            ],
             "Type": "AWS::EC2::SecurityGroup",
             "Properties": {
                 "GroupDescription": "Public facing  Security Group",
                 "VpcId": {
-                    "Ref": "VPC"
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::VPC"
+                    }
                 },
                 "SecurityGroupIngress": [
                     {
@@ -1181,10 +799,14 @@
                 "DBSubnetGroupDescription":"Availability Zones for AlgorDB",
                 "SubnetIds":[
                     {
-                        "Ref":"PrivateSubnet"
+                        "Fn::ImportValue" : {
+                            "Fn::Sub" : "${NetworkStackNameParameter}::PrivateSubnet"
+                        }
                     },
                     {
-                        "Ref":"DbPrivateSubnet"
+                        "Fn::ImportValue" : {
+                            "Fn::Sub" : "${NetworkStackNameParameter}::DbPrivateSubnet"
+                        }
                     }
                 ]
             }
@@ -1236,10 +858,6 @@
         },
         
         "BastionInstance": {
-            "DependsOn": [
-                "PublicSubnet",
-                "BastionSecurityGroup"
-            ],
             "Type": "AWS::EC2::Instance",
             "Properties": {
                 "InstanceType": {
@@ -1269,7 +887,9 @@
                         "DeviceIndex": "0",
                         "DeleteOnTermination": "true",
                         "SubnetId": {
-                            "Ref": "PublicSubnet"
+                            "Fn::ImportValue" : {
+                                "Fn::Sub" : "${NetworkStackNameParameter}::PublicSubnet"
+                            }
                         }
                     }
                 ],
@@ -1295,7 +915,6 @@
 
         "WebInstance": {
             "DependsOn": [
-                "PrivateSubnet",
                 "EC2SecurityGroup"
             ],
             "Type": "AWS::EC2::Instance",
@@ -1323,7 +942,9 @@
                         "DeviceIndex": "0",
                         "DeleteOnTermination": "true",
                         "SubnetId": {
-                            "Ref": "PrivateSubnet"
+                            "Fn::ImportValue" : {
+                                "Fn::Sub" : "${NetworkStackNameParameter}::PrivateSubnet"
+                            }
                         }
                     }
                 ],
@@ -1348,15 +969,12 @@
         },
         "ElasticLoadBalancer":{
             "Type":"AWS::ElasticLoadBalancing::LoadBalancer",
-            "DependsOn":[
-                "PublicSubnet"
-            ],
             "Properties":{
-                "Subnets":[
-                    {
-                        "Ref":"PublicSubnet"
+                "Subnets":[{
+                    "Fn::ImportValue" : {
+                        "Fn::Sub" : "${NetworkStackNameParameter}::PublicSubnet"
                     }
-                ],
+                }],
                 "CrossZone":"true",
                 "Listeners":[
                     {
@@ -1395,17 +1013,5 @@
         }
     },
     "Outputs": {
-        "VPC": {
-            "Description": "VPC ",
-            "Value": {
-                "Ref": "VPC"
-            }
-        },
-        "PublicSubnet": {
-            "Description": "Public Subnet  ",
-            "Value": {
-                "Ref": "PublicSubnet"
-            }
-        }
     }
 }
