@@ -22,6 +22,14 @@
             "ConstraintDescription": "must contain only letters."
         },
 
+        "RDSStackNameParameter": {
+            "Description": "Stack name to import RDS configuration from",
+            "Type": "String",
+            "MinLength": "1",
+            "AllowedPattern": "[a-zA-Z]*",
+            "ConstraintDescription": "must contain only letters."
+        },
+
         "BastionServerName": {
             "Description": "Bastion Server Name",
             "Type": "String",
@@ -158,7 +166,7 @@
             "Type": "String",
             "MinLength": "9",
             "MaxLength": "25",
-            "Default": "ami-03dbe87524bca3d93",
+            "Default": "ami-0b816b755f85cf310",
             "AllowedPattern": "[-_ a-zA-Z0-9]*",
             "ConstraintDescription": "Must be a valid imageID, use the one created under AMI Creation in chapter 4."
         }
@@ -431,10 +439,65 @@
                 "UserData": {
                     "Fn::Base64": {
                         "Fn::Join": [
-                            "",
+                            "\n",
                             [
                                 "#!/bin/bash\n",
-                                "echo In work\n"
+                                "Fn::Join": [
+                                    "",
+                                    ["DATABASE_URL=\"", {"Fn::ImportValue": {"Fn::Sub": "${RDSStackNameParameter}::DatabaseURL"}}, "\""]
+                                ],
+                                "GITHUB_KEY_FILE_NAME=\"githubKey\"",
+                                "ssh-keyscan github.com > $GITHUB_KEY_FILE_NAME",
+                                "GITHUB_FINGERPRINT=`ssh-keygen -lf $GITHUB_KEY_FILE_NAME`",
+                                "FOUND_MATCHING_FINGERPRINT=\"false\"",
+                                "for word in $GITHUB_FINGERPRINT; do",
+                                "  if [ $word = \"SHA256:nThbg6kXUpJWGl7E1IGOCspRomTxdCARLviKw6E5SY8\" ]; then",
+                                "    echo \"github.com's fingerprint is: \" $word",
+                                "    FOUND_MATCHING_FINGERPRINT=\"true\"",
+                                "  elif [ $word = \"SHA256:br9IjFspm1vxR3iA35FWE+4VTyz1hYVLIE2t1/CeyWQ\" ]; then",
+                                "    echo \"github.com's fingerprint is: \" $word",
+                                "    FOUND_MATCHING_FINGERPRINT=\"true\"",
+                                "  elif [ $word = \"16:27:ac:a5:76:28:2d:36:63:1b:56:4d:eb:df:a6:48\" ]; then",
+                                "    echo \"github.com's fingerprint is: \" $word",
+                                "    FOUND_MATCHING_FINGERPRINT=\"true\"",
+                                "  elif [ $word = \"ad:1c:08:a4:40:e3:6f:9c:f5:66:26:5d:4b:33:5d:8c\" ]; then",
+                                "    echo \"github.com's fingerprint is: \" $word",
+                                "    FOUND_MATCHING_FINGERPRINT=\"true\"",
+                                "  fi",
+                                "done",
+                                "if [ $FOUND_MATCHING_FINGERPRINT = \"true\" ]; then",
+                                "  cat $GITHUB_KEY_FILE_NAME > ~/.ssh/known_hosts",
+                                "  rm $GITHUB_KEY_FILE_NAME",
+                                "else",
+                                "  rm $GITHUB_KEY_FILE_NAME",
+                                "  echo \"ERROR: Failed to match github.com's fingerprint\"",
+                                "  exit 1",
+                                "fi",
+                                "",
+                                "chmod 777 ~/.ssh/id_rsa",
+                                "cp ~/.ssh/algor_rsa ~/.ssh/id_rsa",
+                                "chmod 400 ~/.ssh/id_rsa",
+                                "git clone git@github.com:AskarAitzhan/algor.git",
+                                "chmod 777 ~/.ssh/id_rsa",
+                                "cp ~/.ssh/zhaziroshka_rsa ~/.ssh/id_rsa",
+                                "chmod 400 ~/.ssh/id_rsa",
+                                "git clone git@github.com:AskarAitzhan/zhaziroshka.git",
+                                "",
+                                "pip3 install -r /algor/requirements.txt",
+                                "pip3 install -r /zhaziroshka/requirements.txt",
+                                "KEY_ID='51af6d66-bacd-407c-a732-1852631c40c5'",
+                                "mv /zhaziroshka/supervisord.conf /etc/supervisor/",
+                                "mv /zhaziroshka/algor.conf /etc/supervisor/conf.d/",
+                                "mv /zhaziroshka/default.conf /etc/nginx/sites-available/",
+                                "mv /zhaziroshka/ping.conf /etc/nginx/sites-available/",
+                                "rm /etc/nginx/sites-enabled/default",
+                                "ln -s /etc/nginx/sites-available/default.conf /etc/nginx/sites-enabled/",
+                                "ln -s /etc/nginx/sites-available/ping.conf /etc/nginx/sites-enabled/",
+                                "touch /var/www/html/index.html",
+                                "sudo supervisorctl reread",
+                                "sudo supervisorctl update",
+                                "systemctl restart supervisor",
+                                "systemctl restart nginx"
                             ]
                         ]
                     }
