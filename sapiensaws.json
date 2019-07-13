@@ -319,6 +319,29 @@
                                 "iam:ListUsers"
                             ],
                             "Resource": "*"
+                        },
+                        {
+                            "Action": [
+                                "autoscaling:Describe*",
+                                "cloudwatch:*",
+                                "logs:*",
+                                "sns:*",
+                                "iam:GetPolicy",
+                                "iam:GetPolicyVersion",
+                                "iam:GetRole"
+                            ],
+                            "Effect": "Allow",
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": "iam:CreateServiceLinkedRole",
+                            "Resource": "arn:aws:iam::*:role/aws-service-role/events.amazonaws.com/AWSServiceRoleForCloudWatchEvents*",
+                            "Condition": {
+                                "StringLike": {
+                                    "iam:AWSServiceName": "events.amazonaws.com"
+                                }
+                            }
                         }
                     ]
                 },
@@ -497,7 +520,11 @@
                                 "sudo supervisorctl reread",
                                 "sudo supervisorctl update",
                                 "systemctl restart supervisor",
-                                "systemctl restart nginx"
+                                "systemctl restart nginx",
+                                "wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb",
+                                "dpkg -i -E ./amazon-cloudwatch-agent.deb",
+                                "mv /zhaziroshka/config.json /",
+                                "sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/config.json -s"
                             ]
                         ]
                     }
