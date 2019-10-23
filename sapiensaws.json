@@ -508,7 +508,7 @@
                                 "",
                                 "pip3 install -r /algor/requirements.txt",
                                 "pip3 install -r /zhaziroshka/requirements.txt",
-                                "KEY_ID='51af6d66-bacd-407c-a732-1852631c40c5'",
+                                "KEY_ID='cf5aa91d-9d3c-43d0-b325-2a94adbff29d'",
                                 "mv /zhaziroshka/supervisord.conf /etc/supervisor/",
                                 "mv /zhaziroshka/algor.conf /etc/supervisor/conf.d/",
                                 "mv /zhaziroshka/default.conf /etc/nginx/sites-available/",
